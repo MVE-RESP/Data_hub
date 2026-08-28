@@ -1,0 +1,37 @@
+# This is a basic workflow to help you get started with Actions
+name: Validation Rapports Ebola RDC
+
+on:
+  push:
+    paths:
+      - "Archivage_Riposte_Ebola_RDC/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du repo
+        uses: actions/checkout@v3
+
+      - name: Vérifier l’arborescence
+        run: |
+          echo "Structure actuelle des dossiers :"
+          tree Archivage_Riposte_Ebola_RDC || ls -R Archivage_Riposte_Ebola_RDC
+
+      - name: Détecter les rapports manquants
+        run: |
+          # Exemple : vérifier si chaque province a au moins un rapport Sitrep
+          for province in ProvinceA ProvinceB ProvinceC; do
+            if ! ls Archivage_Riposte_Ebola_RDC/**/$province/**/Type_de_rapport/Sitrep/* 1> /dev/null 2>&1; then
+              echo "::error file=$province::Rapport Sitrep manquant pour $province"
+              echo "Rapport manquant pour $province" >> missing_reports.txt
+            fi
+          done
+
+      - name: Créer des Issues pour les rapports manquants
+        if: always()
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "Rapports manquants détectés"
+          content-filepath: missing_reports.txt
+          labels: validation, manquant
